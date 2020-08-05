@@ -78,9 +78,21 @@ const props = {
     type: String,
     default: 'value'
   },
+  countKey: {
+    type: String,
+    default: 'count'
+  },
+  colorKey: {
+    type: String,
+    default: 'color'
+  },
   showTooltip: {
     type: Boolean,
     default: true
+  },
+  maximized: {
+    type: Boolean,
+    default: false
   },
   wordClick: {
     type: Function,
@@ -123,6 +135,14 @@ export default {
     words: {
       handler: function (val, oldVal) {
         this.update()
+      },
+      deep: true
+    },
+    fontSize: {
+      handler: function (val, oldVal) {
+        // clear chart
+        this.chart.select('g').remove()
+        this.renderChart()
       },
       deep: true
     }
@@ -203,21 +223,29 @@ export default {
       layout.start()
     },
     draw (data) {
-      const { layout, chart, color, nameKey, valueKey, showTooltip, wordClick } = this
+      const { layout, chart, color, nameKey, valueKey, countKey, showTooltip, wordClick } = this
       const fill = this.getColorScale(color)
+      console.log('***Data: ' + data)
       const vm = this
       const centeredChart = chart.append('g')
               .attr('transform', 'translate(' + layout.size()[0] / 2 + ',' + layout.size()[1] / 2 + ')')
       // Define the div for the tooltip
+      let tooltipClass
+      if (this.maximized) {
+        tooltipClass = "tooltip word-cloud maximized"
+      } else {
+        tooltipClass = "tooltip word-cloud"
+      }
       const tooltip = d3.select("body").append("div")
-            .attr("class", "tooltip")
+            .attr("class", tooltipClass)
             .style("opacity", 0);
       const text = centeredChart.selectAll('text')
               .data(data)
            .enter().append('text')
               .style('font-size', d => d.size + 'px')
               .style('font-family', d => d.font)
-              .style('fill', (d, i) => fill(i))
+              /*.style('fill', (d, i) => fill(i))*/
+              .style('fill', function(d) { return d.color })
               .attr('class', 'text')
               .attr('text-anchor', 'middle')
       text.transition()
@@ -229,7 +257,7 @@ export default {
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", .7)
-                tooltip.html(nameKey + ': ' + d[nameKey] + "<br/>"  + valueKey + ': ' + d[valueKey])
+                tooltip.html(d[countKey])
             })
             .on("mousemove", function(d) {
                 tooltip
@@ -243,7 +271,7 @@ export default {
         });
       }
       text.on('click', (d) => {
-        wordClick(d[nameKey], d[valueKey], vm)
+        wordClick(d[nameKey], d[valueKey], d[countKey], vm)
       })
     },
     update () {
@@ -274,17 +302,30 @@ export default {
   top: 0;
   left: 0;
 }
-div.tooltip {
+div.tooltip.word-cloud {
     position: absolute;
-    width: 140px;
-    height: 50px;
-    padding: 8px;
-    font: 18px Arial;
-    line-height: 24px;
+    /*width: 140px;*/
+    height: 28px;
+    padding: 0 14px 0 14px;
+    font: 10px Arial;
+    line-height: 28px;
     color: white;
     background: black;
     border: 0px;
-    border-radius: 2px;
+    border-radius: 5px;
     pointer-events: none;
+}
+div.tooltip.word-cloud.maximized {
+  position: absolute;
+  /*width: 140px;*/
+  height: 40px;
+  padding: 0 20px 0 20px;
+  font: 16px Arial;
+  line-height: 40px;
+  color: white;
+  background: black;
+  border: 0px;
+  border-radius: 5px;
+  pointer-events: none;
 }
 </style>
